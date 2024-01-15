@@ -1,57 +1,32 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from bs4 import BeautifulSoup
-import requests
-import os
-from src.url_checker import is_url_a_youtube_domain
-from src.webdriver import create_driver
+from src.argument_parser import parser
+from src.channel_id_extractor import channel_id_frm_video_url, \
+    channel_id_frm_other_than_video_url
 
-# TODO: get the platform (linux, window, mac) and use appropriate driver
-# TODO: Check for the consent and click Rejectall button
-# TODO: start the driver as headless
-# TODO: add argparse functionality
 
-url = "https://www.youtube.com/watch?v=BFsU_vOgN5c"
-url = "https://www.youtube.com/@JetBrainsTV"
-url = "https://www.youtube.com/watch?v=BFsc"
-url = "https://www.youtube.com/"
-url = "https://www.youtube.com/lksjwesldkfj-lkdsfj"
+def main(user_input: str) -> None:
+    """
 
-is_url_a_youtube_domain(url = url)
+    Parameters
+    ----------
+    user_input: str
 
-driver = create_driver()
-driver.get(url = url)
+    Returns
+    -------
+    None
 
-buttons = driver.find_elements(by = By.TAG_NAME, value = 'button')
+    """
+    channel_id = (
+        channel_id_frm_video_url(video_url = user_input)
+        if 'watch?v=' in user_input
+        else channel_id_frm_other_than_video_url(user_text = user_input)
+    )
+    if channel_id:
+        print(
+            f"https://www.youtube.com/feeds/videos.xml?channel_id="
+            f"{channel_id}")
+    return None
 
-reject_button = None
-pause_button = None
-for button in buttons:
-    if 'REJECT' in button.text.upper():
-        reject_button = button
 
-    if button.get_attribute('title') == 'Play (k)':
-        pause_button = button
-        
-if reject_button:
-    reject_button.click()
-if pause_button:
-    pause_button.click()
-
-content = BeautifulSoup(driver.page_source, 'html.parser')
-driver.close()
-
-meta_elements = content.find_all('meta')
-for meta_element in meta_elements:
-    if meta_element.get('itemprop') == 'channelId':
-        print(meta_element['content'])
-
-link_elements = content.find_all('link')
-for link_element in link_elements:
-    if (link_element.get('itemprop') == 'url') & \
-            ('@' in link_element.get('href', '')):
-        print(link_element['href'])
-    if ('alternate' in link_element.get('rel', [])) & \
-            ('@' in link_element.get('href', '')):
-        print(link_element['href'])
-
+if __name__ == '__main__':
+    args = parser.parse_args()
+    main(user_input = args.text)
